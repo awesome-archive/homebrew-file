@@ -1,6 +1,9 @@
 Usage
 =====
 
+Brewfile
+--------
+
 Brew-file manages packages installed by Homebrew.
 It also supports `brew-cask <https://github.com/phinze/homebrew-cask>`_
 and other Homebrew subcommand installers.
@@ -18,25 +21,18 @@ in your setup file (e.g. **.bashrc**), like:
    export HOMEBREW_BREWFILE=~/.brewfile
 
 You can also modify the default installation locations of Cask packages.
-To make this settings, it is the same as issuing `How to Use Homebrew-cask#Options <https://github.com/caskroom/homebrew-cask/blob/master/USAGE.md#options>`_.
+To make this settings, it is the same as issuing `How to Use Homebrew-cask#Options <https://github.com/homebrew/homebrew-cask/blob/master/USAGE.md#options>`_.
 You might want to add the following line to your **.bashrc** or **.zshenv**:
 
 .. code-block:: sh
 
     export HOMEBREW_CASK_OPTS="--appdir=$HOME/MyApplications"
 
-Similarly, you can specify the environment for brew-gem.  The following will tell brew-gem to use the Ruby installed by Homebrew itself:
-
-.. code-block:: sh
-
-    export HOMEBREW_GEM_OPTS="--homebrew-ruby"
-
 If there is no ``Brewfile``, Brew-file will ask you if you want to initialize ``Brewfile``
 with installed packages or not.
 You can also make it with ``install`` (``-i``) subcommand.
 
 With ``install`` subcommand, Brew-file tries to install packages listed in ``Brewfile``.
-If any packages managed with Homebrew Cask are listed, brew-cask is also installed automatically.
 
 ``Brewfile`` convention is similar as Brewdler.
 Normally, you don't need to modify anything on Brewdler's ``Brewfile`` for Brew-file
@@ -44,19 +40,19 @@ Normally, you don't need to modify anything on Brewdler's ``Brewfile`` for Brew-
 Example::
 
     # Tap repositories and their packages
-    tap caskroom/cask
-    brew 'brew-cask'
-    # install brew-cask # install is same as "brew". Quotes are not mandatory.
+    tap rcmdnk/file
+    brew brew-file
 
-    tapall rcmdnk/file # This will trigger `brew install brew-file`, too
+    # This will install all packages in rcmdnkpac
+    tapall rcmdnk/rcmdnkpac
 
-    # Cask packages
-    cask firefox
-    #cask install firefox # "cask install" is same as "cask"
-
-    # Other Homebrew packages
+    # Homebrew packages
     brew mercurial
     brew macvim --with-lua
+
+    # Cask packages
+    tap homebrew/cask
+    cask bettertouchtool
 
     # Additional files
     file ~/.Brewfile
@@ -73,10 +69,9 @@ brew             ``brew install X``
 install          Same as ``brew``
 tap              ``brew tap X``
 tapall           ``brew tap X``, and installs all packages of Formulae in the tap.
-cask             ``brew cask install X``. Require `caskroom/homebrew-cask <https://github.com/caskroom/homebrew-cask/>`_. (It will be installed automatically.)
-pip              `brew pip X`. Require `hanxue/brew-pip <https://github.com/hanxue/brew-pip>`_. (It will be installed automatically.)
-gem              ``brew gem install X``. Require `sportngin/brew-gem <https://github.com/sportngin/brew-gem>`_. (It will be installed automatically.)
+cask             ``brew install --cask X``.
 appstore         Apps installed from AppStore. The line is like: `appstore <identifier> <App Name>`. Identifier can be obtained by `argon/mas <https://github.com/argon/mas>`_. (It will be installed automatically.) For older OS X, it might be not available. For such a case, only App names are listed by ``init``, and ``install`` command just warns like ``Please install <App Name> from App Store!``.
+main             Main file. If it exists, new packages will be written to the main file instead of the top file.
 file             Additional files. A path is a absolute path, or a relative path, relative to the file which calls it. You can use environmental variables such ``file ~/${HOSTNAME}.Brewfile``.
 brewfile         Same as ``file``.
 before           Execute ``X`` at the beginning of the install.
@@ -96,7 +91,7 @@ If you use ``tapall``, Brew-file does ``brew install`` for all Formulae in the r
 in addition to do ``tap`` the repository.
 
 If you want to divide the list into several files.
-If the main ``Brewfile`` has ``file`` or ``brewfile`` commands,
+If the top ``Brewfile`` has ``main``, ``file`` or ``brewfile`` commands,
 then corresponding argument is used as an external file.
 The path can be an absolute or a relative.
 If you use a relative path, like .``/Brewfile2``,
@@ -106,14 +101,29 @@ where the main ``Brewfile`` is.
 You can use a nest of ``file``, too.
 The relative path starts from the parent file's directory.
 
-For the path, such ``~`` is translated into ``$HOME``,
-and any environmental variables can be used.
+You can also use nested ``main``,
+though it should be no more than once in one Brewfile.
+
+For the path, such ``~`` is translated into ``$HOME``.
+You can use some shell variables: ``$HOSTNAME``, ``$HOSTTYPE`` and ``$OSTYPE``.
+Inaddition, ``$PLATFORM``, which is platform identifier like
+darwin, linux, or win32.
+
+If you use `brew-wrap <https://homebrew-file.readthedocs.io/en/latest/brew-wrap.html>`_,
+any environmental variables can be used.
+
+.. warning::
+
+    Environmental variables are not translated if you do not use brew-wrap or
+    call brew directly like ``command brew``.
+    Only ``~``, ``$HOME``, ``$HOSTNAME``, ``$HOSTTYPE``, ``$OSTYPE``, and ``$PLATFORM``
+    are translated in these cases.
 
 e.g.
 
 If you have::
 
-    file ./${HOST}.Brewfile
+    file ./${HOSTNAME}.Brewfile
 
 in main ``Brewfile``, and prepare files like::
 
@@ -132,10 +142,6 @@ then you can put Host specific packages in **~/.Brewfile**.
 
 Other example: `Add an option to ignore appstore apps · Issue #22 · rcmdnk/homebrew-file <https://github.com/rcmdnk/homebrew-file/issues/22>`_
 
-You don't need to ``brew install`` by hand.
-As written above, ``tap 'caskroom/cask'`` is can be dropped
-because ``cask 'firefox'`` triggers it.
-
 Some packages such macvim has Application (MacVim.app).
 If you want to install them to Applications area,
 please use ``-l`` (for ``~/Applications/``) or ``-g`` (for ``/Applications/``).
@@ -152,15 +158,20 @@ If you want edit ``Brewfile``, use ``edit`` option.
    you may make empty ``Brewfile`` (Be careful, ``brew -c -C`` remove all packages :scream:).
    Therefore I recommend you to do ``brew file -i`` at first if you don't have ``Brewfile``.
 
+
+Manage Brewfile with Git
+------------------------
+
 You can maintain your ``Brewfile`` at the git repository.
-First, make new repository at GitHub (or other git server).
+First, make new repository at GitHub (or other git server),
+which has a file named ``Brewfile``.
 
 Then, set the repository by::
 
     $ brew file set_repo -r <repository>
 
 It will clone the repository.
-If the repository has a file named ``Brewfile``, the file will be used instead of
+The content of ``Brewfile`` in the repository will be used instead of
 ``~/.config/brewfile/Brewfile``.
 (then ``~/.config/brewfile/Brewfile`` will have this repository information.)
 
@@ -189,6 +200,10 @@ and want to use ``brew file update``.
 Otherwise, please be careful to use ``brew file update``,
 because it deletes what you installed, but you have not registered in ``Brewfile``.
 
+
+Check Apps
+----------
+
 If you want to check your Apps for Cask, use::
 
     $ brew file casklist
@@ -199,7 +214,7 @@ This command makes ``Caskfile.txt``, which is like::
     ### Please copy these lines to your Brewfile and use with `brew bundle`.
 
     ### tap and install Cask (remove comment if necessary).
-    #tap caskroom/cask
+    #tap homebrew/cask
     #install brew-cask
 
     ### Apps installed by Cask in /Applications
@@ -242,3 +257,75 @@ You can find applications which were installed manually,
 but can be managed by Cask under "Apps not installed by Cask, but installed in...".
 
 If you want to manage them with ``Brewfile``, just copy above lines w/o "#" for these Apps.
+
+Use machine specific Brewfile
+-----------------------------
+
+You can share Brewfile at different machines
+by using Dropbox or Git repository `Getting Started <https://homebrew-file.readthedocs.io/en/latest/getting_started.html>`_.
+
+You may also want to have each machine specific packages.
+
+In this case, ``main`` command is useful.
+
+First, make Brewfile with common packages:
+
+.. code-block:: sh
+
+    tap homebrew/core
+    brew bash
+    brew neovim
+
+    main ./Brewfile.$HOSTNAME
+
+and share it for each machine.
+
+Then, install packages at the machine A.
+
+If you set `brew-wrap <https://homebrew-file.readthedocs.io/en/latest/brew-wrap.html>`_
+or run ``brew file init``,
+new packages will be written into ``Brewfile.A``
+in the same directory as ``Brewfile``.
+
+If you install packages at the machine B,
+then new packages will be written into ``Brewfile.B``.
+
+If you have new packages which are common in ``Brewfile.A`` and ``Brewfile.B``,
+edit these files and move the packages into ``Brewfile``.
+
+If you want to have package lists for each platform,
+it may useful to have ``main`` command like::
+
+    main ./Brewfile.$OSTYPE.$PLATFORM
+
+This will make unique names like:
+
+* macOS, M1 (arm environment): ``Brewfile.darwin.arm64``
+* macOS, Intel or x86_64 environment at M1: ``Brewfile.darwin.x86_64``
+* Linux, 64 bit: ``Brewfile.linux.x86_64``
+* Cygwin, 64 bit: ``Brewfile.cygwin.x86_64``
+
+Share Brewfile with your colleagues
+-----------------------------------
+
+If you are working with in a group, it is good to have a common Brewfile
+to share the development environment.
+
+In this case, make ``Brewfile`` like:
+
+.. code-block:: sh
+
+    tap homebrew/core
+    brew bash
+    brew neovim
+    ...
+
+    main ~/.config/MyBrewfile
+
+Then, maintain ``Brewfile`` for the group.
+It is useful to share it by GitHub.
+Each developer can update the environment by ``brew file update``.
+
+In addition, each developer can install his/her necessary packages
+and maintain them by ``MyBrewfile``.
+

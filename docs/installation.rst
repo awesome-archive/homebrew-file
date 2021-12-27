@@ -7,15 +7,28 @@ Install Homebrew-file with Homebrew::
 
 or you can use install script::
 
-    $ curl -fsSL https://raw.github.com/rcmdnk/homebrew-file/install/install.sh |sh
+    $ curl -o install.sh -fsSL https://raw.github.com/rcmdnk/homebrew-file/install/install.sh
+    $ chmod 755 ./install.sh
+    $ ./install.sh
+    $ rm -f install.sh
 
 which installs Homebrew itself, too, if it is not installed.
 
-Then, add following lines in you **.bashrc** or **.zshrc** to wrap ``brew`` command::
+Then, add following lines in you **.bashrc** or **.zshrc** to wrap ``brew`` command:
+
+.. code-block:: sh
 
     if [ -f $(brew --prefix)/etc/brew-wrap ];then
       source $(brew --prefix)/etc/brew-wrap
     fi
+
+Or, for Fish Shell add the following lines in your **config.fish** to wrap ``brew`` command:
+
+.. code-block:: sh
+
+    if test -f (brew --prefix)/etc/brew-wrap.fish
+      source (brew --prefix)/etc/brew-wrap.fish
+    end
 
 **brew-wrap** wraps the original ``brew`` command
 for an automatic update of **Brewfile** when you execute
